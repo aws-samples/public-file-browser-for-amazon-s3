@@ -38,7 +38,7 @@ Resources:
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
-  StaticWebsite:
+  PublicWebsiteBucket:
     Type: AWS::S3::Bucket
     Metadata:
       cdk_nag:
@@ -70,7 +70,7 @@ Resources:
             Status: Enabled
             NoncurrentVersionExpiration:
               NoncurrentDays: 90
-  NewBucket:
+  PublicFilesBucket:
     Type: AWS::S3::Bucket
     Metadata:
       cdk_nag:
@@ -118,14 +118,14 @@ Resources:
               - ETag
             Id: CORSRule
             MaxAge: 3600
-  StaticWebsiteBucketPolicy:
+  PublicWebsiteBucketBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Metadata:
       cdk_nag:
         rules_to_suppress:
           - id: AwsSolutions-S10
             reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
-    DependsOn: StaticWebsite
+    DependsOn: PublicWebsiteBucket
     Properties:
       Bucket: !Sub
         - public-file-browser-website-${Unique}
@@ -161,14 +161,14 @@ Resources:
             Condition:
               Bool:
                 aws:SecureTransport: 'false'
-  NewBucketBucketPolicy:
+  PublicFilesBucketBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Metadata:
       cdk_nag:
         rules_to_suppress:
           - id: AwsSolutions-S10
             reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
-    DependsOn: NewBucket
+    DependsOn: PublicFilesBucket
     Properties:
       Bucket: !Sub
         - public-file-browser-files-${Unique}
@@ -298,8 +298,8 @@ Resources:
   CloudFront:
     Type: AWS::CloudFront::Distribution
     DependsOn:
-      - NewBucket
-      - StaticWebsite
+      - PublicFilesBucket
+      - PublicWebsiteBucket
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -415,8 +415,8 @@ Resources:
       ServiceToken: !GetAtt 'CustomSeedS3Data.Arn'
       SiteName: !Ref 'SiteName'
       IdentityPoolId: !Ref 'CognitoIdentityPool'
-      StaticWebsiteBucket: !Ref StaticWebsite
-      FilesBucketName: !Ref NewBucket
+      PublicWebsiteBucketBucket: !Ref PublicWebsiteBucket
+      FilesBucketName: !Ref PublicFilesBucket
       FilesOpenMode: !Ref FilesOpenTabMode
       VisibleStorageClasses: !Ref VisibleStorageClasses
   CognitoIdentityPool:
@@ -482,8 +482,8 @@ Outputs:
     Value: !Sub 'https://${CloudFront.DomainName}'
   PublicFilesBucket:
     Description: The name of the Amazon S3 Bucket for storing PUBLICLY ACCESSIBLE files.
-    Value: !Ref 'NewBucket'
+    Value: !Ref 'PublicFilesBucket'
   WebInterfaceAppBucket:
     Description: The name of the Amazon S3 Bucket for the HTML/JS/CSS pages that make up the file browser web interface.
-    Value: !Ref 'StaticWebsite'
+    Value: !Ref 'PublicWebsiteBucket'
 
