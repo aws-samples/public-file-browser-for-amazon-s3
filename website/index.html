@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>###REPLACE_ME_SITE_NAME### - /</title>
+    <link href="/pfb_for_s3/css/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="/pfb_for_s3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/pfb_for_s3/css/main.css" rel="stylesheet">
+    <meta name="description" content="File Browser - ###BUCKET_NAME_NICE###">
+    <meta name="robots" content="index, follow" />
+
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/pfb_for_s3/icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/pfb_for_s3/icon/favicon-16x16.png">
+    <link rel="manifest" href="/pfb_for_s3/icon/site.webmanifest">
+    <link rel="mask-icon" href="/pfb_for_s3/icon/safari-pinned-tab.svg" color="#ff9900">
+    <link rel="shortcut icon" href="/pfb_for_s3/icon/favicon.ico">
+    <meta name="msapplication-TileColor" content="#ff9900">
+    <meta name="msapplication-config" content="/pfb_for_s3/icon/browserconfig.xml">
+    <meta name="theme-color" content="#ff9900">
+</head>
+<body>
+<div class="container-xxl mt-3">
+    <h4 class="text-secondary mb-0" id="site_title">###REPLACE_ME_SITE_NAME###</h4>
+    <h1 class="mb-2" id="site_current_path">&nbsp;</h1>
+
+    <table id="listing" class="table font-monospace">
+        <thead>
+            <tr>
+                <th id="icon_header" style="display: table-cell;"></th>
+                <th id="key_header" style="display: table-cell;">Key</th>
+                <th id="size_header" style="display: table-cell;">Size</th>
+                <th id="modified_header" style="display: table-cell;">Last Modified</th>
+                <th id="class_header" style="display: table-cell;">Storage Class</th>
+            </tr>
+        </thead>
+        <tbody id="listingBody"></tbody>
+    </table>
+    <div id="bottom_nav">
+        <div class="d-inline-block align-top align-top pt-1 ps-2" id="colors_word_close">Powered by <a href="https://github.com/aws-samples/public-file-browser-for-amazon-s3">Public File Browser for Amazon S3</a></div>
+    </div>
+
+    <script src="/pfb_for_s3/js/bootstrap.bundle.min.js"></script>
+    <script src="/pfb_for_s3/js/jquery-3.7.1.min.js"></script>
+    <script src="/pfb_for_s3/js/luxon.min.js"></script>
+    <!-- Would prefer to add an integrity check here, but cannot due to sdk.amazonaws.com not responding with CORS -->
+    <script src="/pfb_for_s3/js/aws-sdk-js-v2.1560.0.min.js"></script><!-- nosemgrep: missing-integrity -->
+    <script type="text/javascript">
+        //let awsConfigOptions = {
+        //    site_name: "Public File Browser for Amazon S3 - Demo",
+        //    identity_pool_id: "us-west-2:3b83fd4f-d3d4-47ee-b505-75a1efefcdb0",
+        //    bucket_name: "public-file-browser-files-0207ef68c07d",
+        //    files_open_in_new_tab: true,
+        //    visible_storage_classes: "STANDARD,STANDARD_IA,ONEZONE_IA,REDUCED_REDUNDANCY"
+        //}
+        let awsConfigOptions = {
+            site_name: "###REPLACE_ME_SITE_NAME###",
+            identity_pool_id: "###REPLACE_ME_IDENTITY_POOL_ID###",
+            bucket_name: "###REPLACE_ME_BUCKET_NAME###",
+            files_open_in_new_tab: ###REPLACE_ME_FILES_OPEN_MODE###,
+			visible_storage_classes: "###REPLACE_ME_VISIBLE_STORAGE_CLASSES###"
+        }
+    </script>
+    <script src="/pfb_for_s3/js/main.js"></script>
+</div>
+</body>
+</html>

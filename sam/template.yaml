@@ -1,0 +1,489 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Public File Browser for Amazon S3
+  **WARNING** This template creates resources which incur charges. You will be billed for the AWS resources used if you create a stack from this template.
+Parameters:
+  SiteName:
+    Type: String
+    Description: Friendly Site Name displayed in the header and title of the website.
+    Default: AnyCompany Public Files
+  FilesOpenTabMode:
+    Type: String
+    Description: How do files open when clicked
+    AllowedValues:
+      - In New Tab
+      - In Same Tab
+    Default: In New Tab
+  VisibleStorageClasses:
+    Type: String
+    Description: Comma-delimited list of storage classes to SHOW in directory listings. See S3 GetObject API Reference for possible values.
+    Default: STANDARD,STANDARD_IA,ONEZONE_IA,REDUCED_REDUNDANCY
+  CrossOriginRestriction:
+    Type: String
+    Description: First deployment set to "*", all subsequent deployments set to value of the FileBrowserURL CloudFormation output
+    Default: '*'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Public File Browser for Amazon S3
+        Name: !Sub
+          - public-file-browser-${Unique}
+          - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  StaticWebsite:
+    Type: AWS::S3::Bucket
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+    Properties:
+      BucketName: !Sub
+        - public-file-browser-website-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AccessControl: Private
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingBucket
+        LogFilePrefix: s3-website/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersionAfter90Days
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+  NewBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+    Properties:
+      BucketName: !Sub
+        - public-file-browser-files-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AccessControl: Private
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingBucket
+        LogFilePrefix: s3-files/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersionAfter90Days
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - HEAD
+              - GET
+            AllowedOrigins:
+              # This is an unfortunate reality of circular dependencies, we get around this
+              # by leaving the CORS configuration open until the user re-runs the deployment
+              # with an updated phase.
+              - !Ref CrossOriginRestriction
+            ExposedHeaders:
+              - ETag
+            Id: CORSRule
+            MaxAge: 3600
+  StaticWebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+    DependsOn: StaticWebsite
+    Properties:
+      Bucket: !Sub
+        - public-file-browser-website-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: WebAccess
+        Statement:
+          - Sid: CloudFrontReadForGetBucketObjects
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: !Sub
+              - arn:${AWS::Partition}:s3:::public-file-browser-website-${Unique}/*
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${CloudFront}
+          - Sid: DenyPlaintextAccess
+            Principal: '*'
+            Effect: Deny
+            Action: s3:*
+            Resource:
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-website-${Unique}
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-website-${Unique}/*
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+  NewBucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+    DependsOn: NewBucket
+    Properties:
+      Bucket: !Sub
+        - public-file-browser-files-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: WebAccess
+        Statement:
+          - Sid: CloudFrontReadForGetBucketObjects
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: !Sub
+              - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}/*
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${CloudFront}
+          - Sid: DenyPlaintextAccess
+            Principal: '*'
+            Effect: Deny
+            Action: s3:*
+            Resource:
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}/*
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+  LoggingBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: Unnecessary to log access to the logging bucket.
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: Unnecessary to log access to the logging bucket.
+    Properties:
+      BucketName: !Sub
+        - public-file-browser-logging-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersionAfter90Days
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 90
+  LoggingBucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-S10
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+    DependsOn: LoggingBucket
+    Properties:
+      Bucket: !Sub
+        - public-file-browser-logging-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: WebAccess
+        Statement:
+          - Sid: S3ServerAccessLogsPolicy
+            Effect: Allow
+            Principal:
+              Service: logging.s3.amazonaws.com
+            Action:
+              - s3:PutObject
+            Resource: !Sub
+              - arn:${AWS::Partition}:s3:::public-file-browser-logging-${Unique}/*
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              ArnEquals:
+                aws:SourceArn:
+                  - !Sub
+                    - arn:${AWS::Partition}:s3:::public-file-browser-website-${Unique}
+                    - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+                  - !Sub
+                    - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}
+                    - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+              StringEquals:
+                aws:SourceAccount: !Ref 'AWS::AccountId'
+          - Sid: DenyPlaintextAccess
+            Principal: '*'
+            Effect: Deny
+            Action: s3:*
+            Resource:
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-logging-${Unique}
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+              - !Sub
+                - arn:${AWS::Partition}:s3:::public-file-browser-logging-${Unique}/*
+                - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - NewBucket
+      - StaticWebsite
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W70
+            reason: When using the default CloudFront distribution domain you cannot specify the TLS version options. Changing from the default CloudFront distribution would significantly increase the scope and cost of the project by requiring the customer to select a custom domain, deploy a Route53 Hosted Zone, and generate an ACM Certificate.
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-CFR1
+            reason: Implementing Geo-restrictions is not a valid assumption we can make for this solution.
+          - id: AwsSolutions-CFR2
+            reason: aws:SecureTransport policy is properly implemented in the Bucket Policy
+          - id: AwsSolutions-CFR4
+            reason: When using the default CloudFront distribution domain you cannot specify the TLS version options. Changing from the default CloudFront distribution would significantly increase the scope and cost of the project by requiring the customer to select a custom domain, deploy a Route53 Hosted Zone, and generate an ACM Certificate.
+      checkov:
+        skip:
+          - id: CKV_AWS_68
+            comment: WAF is not appropriate for this workload as it is a static website and would greatly increase the cost and complexity of the solution.
+          - id: CKV_AWS_174
+            comment: When using the default CloudFront distribution domain you cannot specify the TLS version options. Changing from the default CloudFront distribution would significantly increase the scope and cost of the project by requiring the customer to select a custom domain, deploy a Route53 Hosted Zone, and generate an ACM Certificate.
+    Properties:
+      DistributionConfig:
+        Comment: Public File Browser for Amazon S3 Static Website
+        # Uncomment the following if you want to restrict access to the US.
+        # Also consider changing the PriceClass option
+        #Restrictions:
+        #  GeoRestriction:
+        #    Locations:
+        #      - US
+        #    RestrictionType: whitelist
+        Logging:
+          Bucket: !GetAtt LoggingBucket.DomainName
+          Prefix: cloudfront
+          IncludeCookies: true
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: !Sub 'S3-Public-Files'
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # Magic number: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        DefaultRootObject: pfb_for_s3/index.html
+        CacheBehaviors:
+          - ForwardedValues:
+              QueryString: true
+            TargetOriginId: !Sub 'S3-Public-Website'
+            ViewerProtocolPolicy: redirect-to-https
+            Compress: true
+            PathPattern: pfb_for_s3/*
+            # Magic number: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policies-list
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - DomainName: !Sub
+              - public-file-browser-website-${Unique}.s3.${AWS::Region}.amazonaws.com
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Id: !Sub 'S3-Public-Website'
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+          - DomainName: !Sub
+              - public-file-browser-files-${Unique}.s3.${AWS::Region}.amazonaws.com
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+            Id: !Sub 'S3-Public-Files'
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+        PriceClass: PriceClass_100
+        IPV6Enabled: false
+  CustomSeedS3Data:
+    # Logging disabled on this function
+    Type: AWS::Serverless::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: This does not increase the security of the solutions and greatly increases the cost and scope of the deployment.
+          - id: W92
+            reason: This is not necessary for this function as it is only executed during CloudFormation deployment and not related to end-user requests.
+      checkov:
+        skip:
+          - id: CKV_AWS_173
+            comment: Environment variables do not contain sensitive data.
+          - id: CKV_AWS_117
+            comment: This does not increase the security of the solutions and greatly increases the cost and scope of the deployment.
+          - id: CKV_AWS_115
+            comment: Concurrency limit does not make sense for a Lambda Backed Custom Resource only used during stack deployment
+          - id: CKV_AWS_116
+            comment: DLQ does not make sense for a Lambda Backed Custom Resource only used during stack deployment
+    Properties:
+      CodeUri: seed_s3_data/
+      Handler: app.handler
+      Runtime: python3.11
+      Timeout: 30
+      Architectures:
+        - arm64
+      Environment:
+        Variables:
+          LOGURU_LEVEL: 'DEBUG'
+      Policies:
+        # AWSLambdaBasicExecutionRole intentionally omitted. If allowed, it will create
+        # a new log group during the deletion of the stack which cannot be cleaned up
+        # automatically. No way to prevent that or specify an order, so we choose to not
+        # allow logging at all.
+        - S3CrudPolicy:
+            BucketName: !Sub
+              - public-file-browser-website-${Unique}
+              - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+  SeedS3Data:
+    Type: Custom::SeedS3Data
+    Properties:
+      ServiceToken: !GetAtt 'CustomSeedS3Data.Arn'
+      SiteName: !Ref 'SiteName'
+      IdentityPoolId: !Ref 'CognitoIdentityPool'
+      StaticWebsiteBucket: !Ref StaticWebsite
+      FilesBucketName: !Ref NewBucket
+      FilesOpenMode: !Ref FilesOpenTabMode
+      VisibleStorageClasses: !Ref VisibleStorageClasses
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Metadata:
+      cdk_nag:
+        rules_to_suppress:
+          - id: AwsSolutions-COG7
+            reason: Unauthenticated identities are preferred for this application so users can anonymously but securely list contents of the S3 bucket.
+      cfn_nag:
+        rules_to_suppress:
+          - id: W57
+            reason: Unauthenticated identities are preferred for this application so users can anonymously but securely list contents of the S3 bucket.
+    Properties:
+      IdentityPoolName: !Sub
+        - public-file-browser-Identity-Pool-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AllowUnauthenticatedIdentities: true
+  CognitoIdentityUnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: While not ideal, this is necessary to prevent a circular dependency. The resource uses the stack-id as part of the resource name, and the only properties of an IAM Role requiring replacement are Path and RoleName.
+    Properties:
+      RoleName: !Sub
+        - public-file-browser-Cognito-Unauth-${Unique}
+        - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref 'CognitoIdentityPool'
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: unauthenticated
+      Policies:
+        - PolicyName: File-Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - arn:${AWS::Partition}:s3:::public-file-browser-files-${Unique}
+                    - Unique: !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref 'AWS::StackId' ] ] ] ]
+  CognitoIdentityPoolRoleMapping:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref 'CognitoIdentityPool'
+      Roles:
+        unauthenticated: !GetAtt 'CognitoIdentityUnauthenticatedRole.Arn'
+Outputs:
+  FileBrowserURL:
+    Description: The web URL for the deployed Public File Browser for Amazon S3 solution
+    Value: !Sub 'https://${CloudFront.DomainName}'
+  PublicFilesBucket:
+    Description: The name of the Amazon S3 Bucket for storing PUBLICLY ACCESSIBLE files.
+    Value: !Ref 'NewBucket'
+  WebInterfaceAppBucket:
+    Description: The name of the Amazon S3 Bucket for the HTML/JS/CSS pages that make up the file browser web interface.
+    Value: !Ref 'StaticWebsite'
+

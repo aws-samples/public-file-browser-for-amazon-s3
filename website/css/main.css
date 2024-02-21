@@ -1,0 +1,102 @@
+
+.table>:not(caption)>*>* {
+    background-color: unset;
+}
+
+#bottom_nav {
+    height:2rem;
+}
+
+.container-xxl {
+    min-width: 576px;
+}
+
+#site_current_path a:link, #site_current_path a:visited, #site_current_path a:hover {
+    text-decoration: none;
+}
+
+#site_current_path a:hover {
+    border-bottom: 2px black dotted;
+}
+
+#navigation a {
+    color:#000000;
+    text-decoration: none;
+}
+
+#listing {
+    vertical-align: middle;
+    text-align: right;
+}
+
+#listing>thead {
+    white-space:nowrap;
+}
+
+
+#listing>tbody>tr>td, #listing>tbody>tr>th, #listing>tfoot>tr>td, #listing>tfoot>tr>th, #listing>thead>tr>td, #listing>thead>tr>th {
+    /* Equivalent to p-1 */
+    padding: 0.25rem;
+    /* Equivalent to p-2 */
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+#notifyModal .modal-content {
+    background-color: var(--bs-alert-bg);
+}
+
+#listing #key_header {
+    text-align: left;
+}
+
+#listing .row_icon, #listing .row_size, #listing .row_modified, #listing .row_class {
+    width: 1%;
+    white-space: nowrap;
+}
+
+#listing .row_size, #listing .row_modified, #listing .row_class, #listing #size_header, #listing #modified_header, #listing #class_header {
+    padding-left: 1rem !important;
+}
+
+#listing .row_key {
+    white-space: nowrap;
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+    text-align: left;
+}
+
+#listing .row_size {
+    /* TODO: Make this a checkbox?
+    white-space: nowrap;
+     */
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+}
+
+#listing .row_modified {
+    /* TODO: Make this a checkbox?
+    white-space: nowrap;
+     */
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+}
+
+#listing .row_class {
+    width:1%;
+    white-space: nowrap;
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+}
+#listing .row_pagination {
+    width:100%;
+    text-align:right;
+    white-space:nowrap;
+    padding-left:0.5rem;
+    padding-right:0.5rem;
+    border-bottom:0;
+}
+
+h1 {
+    line-height: 40px;
+}
