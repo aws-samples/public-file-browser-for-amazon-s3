@@ -16,14 +16,14 @@ helper = CfnResource()
 @helper.create
 def seed_data(event, _):
     logger.debug('Event: ' + json.dumps(event))
-    logger.debug(f"Retrieving S3 Static Website Contents...")
+    logger.debug(f"Retrieving S3 Public Website Contents...")
     s3 = boto3.client('s3')
     response = s3.list_objects_v2(
-        Bucket=event['ResourceProperties']['StaticWebsiteBucket'],
+        Bucket=event['ResourceProperties']['PublicWebsiteBucket'],
         MaxKeys=1
     )
     if response['KeyCount'] > 0:
-        logger.debug(f"Static Website Bucket already has contents, skipping...")
+        logger.debug(f"Public Website Bucket already has contents, skipping...")
         return
     with zipfile.ZipFile('website.zip', 'r') as zip_ref:
         zip_ref.extractall('/tmp/website/')                      # nosec hardcoded_tmp_directory
@@ -52,9 +52,9 @@ def seed_data(event, _):
             with open(full_path, 'rb') as data:
                 object_key = full_path[len(path) + 1:]
                 logger.debug(
-                    f"Uploading: {full_path} -> s3://{event['ResourceProperties']['StaticWebsiteBucket']}/pfb_for_s3/{object_key}")
+                    f"Uploading: {full_path} -> s3://{event['ResourceProperties']['PublicWebsiteBucket']}/pfb_for_s3/{object_key}")
                 s3.put_object(
-                    Bucket=event['ResourceProperties']['StaticWebsiteBucket'],
+                    Bucket=event['ResourceProperties']['PublicWebsiteBucket'],
                     Key='pfb_for_s3/' + object_key,
                     Body=data,
                     ContentType=mimetypes.guess_type(full_path)[0] or 'application/octet-stream'
@@ -66,7 +66,7 @@ def delete_data(event, _):
     logger.debug('Event: ' + json.dumps(event))
     s3 = boto3.client('s3')
     bucket_list = [
-        event['ResourceProperties']['StaticWebsiteBucket']
+        event['ResourceProperties']['PublicWebsiteBucket']
     ]
     for bucket in bucket_list:
         logger.debug(f"Deleting S3 Bucket Contents: {bucket}")

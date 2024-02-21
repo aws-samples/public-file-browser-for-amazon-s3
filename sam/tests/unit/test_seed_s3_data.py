@@ -20,7 +20,7 @@ def cloudformation_event():
         "ResourceType": "Custom::SeedS3Data",
         "ResourceProperties": {
             "ServiceToken": "REDACTED",
-            "StaticWebsiteBucket": "test-bucket-static-website",
+            "PublicWebsiteBucket": "test-bucket-static-website",
             "FilesOpenMode": "In New Tab",
             "SiteName": "TEST_SITE_NAME",
             "IdentityPoolId": "TEST_IDENTITY_POOL",

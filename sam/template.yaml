@@ -415,7 +415,7 @@ Resources:
       ServiceToken: !GetAtt 'CustomSeedS3Data.Arn'
       SiteName: !Ref 'SiteName'
       IdentityPoolId: !Ref 'CognitoIdentityPool'
-      PublicWebsiteBucketBucket: !Ref PublicWebsiteBucket
+      PublicWebsiteBucket: !Ref PublicWebsiteBucket
       FilesBucketName: !Ref PublicFilesBucket
       FilesOpenMode: !Ref FilesOpenTabMode
       VisibleStorageClasses: !Ref VisibleStorageClasses

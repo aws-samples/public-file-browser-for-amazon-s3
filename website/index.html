@@ -45,22 +45,26 @@
     <script src="/pfb_for_s3/js/bootstrap.bundle.min.js"></script>
     <script src="/pfb_for_s3/js/jquery-3.7.1.min.js"></script>
     <script src="/pfb_for_s3/js/luxon.min.js"></script>
-    <!-- Would prefer to add an integrity check here, but cannot due to sdk.amazonaws.com not responding with CORS -->
     <script src="/pfb_for_s3/js/aws-sdk-js-v2.1560.0.min.js"></script><!-- nosemgrep: missing-integrity -->
     <script type="text/javascript">
-        //let awsConfigOptions = {
-        //    site_name: "Public File Browser for Amazon S3 - Demo",
-        //    identity_pool_id: "us-west-2:3b83fd4f-d3d4-47ee-b505-75a1efefcdb0",
-        //    bucket_name: "public-file-browser-files-0207ef68c07d",
-        //    files_open_in_new_tab: true,
-        //    visible_storage_classes: "STANDARD,STANDARD_IA,ONEZONE_IA,REDUCED_REDUNDANCY"
-        //}
         let awsConfigOptions = {
+            // site_name - Used in the #site_title header, and in the <title>. Be sure and change
+            //             this below, and both places above.
+            // files_open_in_new_tab - How should the browser react when a user clicks a file in
+            //                         the interface? “true” is recommended.
+            //                         true - Open in a new tab
+            //                         false - Open in the same tab
+            // visible_storage_classes - Comma delimited list of storage classes to show. Recommend
+            //                           keeping this default. See AWS S3 API Docs for values.
+            // identity_pool_id - Shouldn't need to change, but used to identify the Cognito pool
+            //                    for temporary credentials.
+            // bucket_name - Shouldn't need to change, but used to identify the source bucket during
+            //               the list generation
             site_name: "###REPLACE_ME_SITE_NAME###",
-            identity_pool_id: "###REPLACE_ME_IDENTITY_POOL_ID###",
-            bucket_name: "###REPLACE_ME_BUCKET_NAME###",
             files_open_in_new_tab: ###REPLACE_ME_FILES_OPEN_MODE###,
-			visible_storage_classes: "###REPLACE_ME_VISIBLE_STORAGE_CLASSES###"
+            visible_storage_classes: "###REPLACE_ME_VISIBLE_STORAGE_CLASSES###",
+            identity_pool_id: "###REPLACE_ME_IDENTITY_POOL_ID###",
+            bucket_name: "###REPLACE_ME_BUCKET_NAME###"
         }
     </script>
     <script src="/pfb_for_s3/js/main.js"></script>
