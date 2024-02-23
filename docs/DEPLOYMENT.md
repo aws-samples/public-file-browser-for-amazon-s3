@@ -14,55 +14,61 @@ The following sections guide you through the following process:
 For this walkthrough, you need to have the following prerequisites:
 
 - An [AWS account](https://portal.aws.amazon.com/billing/signup)
-- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) installed and set up with [credentials](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
+- [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) installed and configured with [credentials](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
 - Python 3.11 Installed and in your PATH variable
-- Select one of the supported regions:
-  - US East (Ohio)
-  - US East (Virginia)
-  - US West (N. California)
-  - US West (Oregon)
-  - Canada (Central)
-  - Europe (Frankfurt)
-  - Europe (Ireland)
-  - Europe (London)
-  - Europe (Milan)
-  - Europe (Paris)
-  - Europe (Stockholm)
-  - Asia Pacific (Jakarta)
-  - Asia Pacific (Mumbai)
-  - Asia Pacific (Osaka)
-  - Asia Pacific (Seoul)
-  - Asia Pacific (Singapore)
-  - Asia Pacific (Sydney)
-  - Asia Pacific (Tokyo)
-  - South America (São Paulo)
-  - Middle East (Bahrain)
-  - Israel (Tel Aviv)
-  - Africa (Cape Town)
+- Choose a region where the required services below are supported. Most AWS commercial regions are supported, but
+  consult the
+  [AWS Services by Region](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) page for
+  details.
+  - Amazon CloudFront
+  - Amazon S3
+  - Amazon Cognito
+  - AWS CloudFormation
+  - AWS Lambda
 
 ## Deployment
 
 For this walkthrough, you must have the following prerequisites:
 
-The AWS SAM CLI is an open-source command line tool used to locally build, test, debug, and deploy serverless applications defined with [AWS SAM templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-specification-template-anatomy.html).
+The AWS SAM CLI is an open-source command line tool used to locally build, test, debug, and deploy serverless
+applications defined with [AWS SAM templates](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-specification-template-anatomy.html).
 
-[Download](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) the source code and extract locally: [AWS Samples - Public File Browser for Amazon S3](https://github.com/aws-samples/public-file-browser-for-amazon-s3)
+[Download](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) the source code and extract locally:
+[AWS Samples - Public File Browser for Amazon S3](https://github.com/aws-samples/public-file-browser-for-amazon-s3)
 
 #### Build and deploy the stack
 
-1. In a terminal, navigate to the ./sam/ directory
+1. In a terminal, navigate to the ./sam/ directory within the downloaded code repository
 2. Run the following command to build and package the project for deployment:\
 `sam build`
-3. Deploy the SAM template to your account. The wizard will guide you through the process of deploying the SAM CloudFormation stack. Details on this process are found in the [sam build documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html).
+3. Deploy the SAM template to your account. The wizard will guide you through the process of deploying the SAM AWS
+   CloudFormation stack. Details on this process are found in the [sam build documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-build.html).
    1. Run the following command: \
       `sam deploy --guided --capabilities CAPABILITY_NAMED_IAM`
-   2. Select the supported AWS Region you chose in the prerequisites section.
-   3. The default parameters are suggested.
-   4. Choose "Y" for all Yes or No items.
-4. Wait for the deployment to complete. This process takes approximately five minutes.
-5. Once the build completes, note the entries in the Outputs section. This is the URL for the Public File Browser for Amazon S3 web application.
-   1. FileBrowserURL - UI for the file browser
-2. IMPORTANT: Complete steps 3 and 4 again, but for the `CrossOriginRestriction` parameter input the value from the `FileBrowserURL` output in Step 5. For example: \
+   2. Enter values for the deployment parameters:
+      1. Stack Name - Choose a unique AWS CloudFormation stack name. End users will not see this.
+      2. AWS Region - The supported AWS Region you chose in the prerequisites section.
+      3. `SiteName` - Publicly visible title for the site, shown on the top of the page and in the title bar.
+      4. `FilesOpenTabMode` - How do you want the browser to react when a user clicks a file in the interface? Values
+         below. `In New Tab` is recommended.
+         1. `In New Tab`
+         2. `In Same Tab`
+      5. `VisibleStorageClasses` - Comma delimited list of storage classes to show. Recommend keeping this default.
+      6. `CrossOriginRestriction` - Browser security setting, set to `*` for first deployment, then see Step 6 below.
+   3. Select the default inputs for the remaining items with the last prompt before deployment being: \
+      `Deploy this changeset?`
+4. Wait for the deployment to complete. This process takes approximately five minutes with a final prompt stating: \
+   `Successfully created/updated stack - [STACK-NAME] in [REGION]`
+5. Once the deployment completes, note the following entries in the Outputs section.
+   1. `FileBrowserURL` - This URL is for the public web interface. Needed in Step 6.
+   2. `PublicFilesBucket` - The name of the Amazon S3 Bucket for storing PUBLICLY ACCESSIBLE files which will display in
+      the user browser.
+   3. `WebInterfaceAppBucket` - The name of the Amazon S3 Bucket which stores the code that runs the file browser web
+      interface.
+6. IMPORTANT: Complete steps 3 and 4 again, keeping all values the same except for the `CrossOriginRestriction`
+   parameter input the value from the FileBrowserURL output in Step 5. For example: \
    `Parameter CrossOriginRestriction [*]: https://d111111abcdef8.cloudfront.net`
 
-This concludes the deployment of the Public File Browser for Amazon S3 web application. AWS SAM CLI uses [AWS CloudFormation](https://aws.amazon.com/cloudformation/) to orchestrate the deployment of the front-end static website and public file storage bucket. The entire application is deployed.
+This concludes the deployment of the Public File Browser for Amazon S3 web application. AWS SAM CLI uses
+[AWS CloudFormation](https://aws.amazon.com/cloudformation/) to orchestrate the deployment of the front-end static website and public file storage bucket.
+The entire application is deployed.
