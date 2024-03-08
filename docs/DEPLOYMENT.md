@@ -16,15 +16,24 @@ For this walkthrough, you need to have the following prerequisites:
 - An [AWS account](https://portal.aws.amazon.com/billing/signup)
 - [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) installed and configured with [credentials](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-set-up-credentials.html)
 - Python 3.11 Installed and in your PATH variable
-- Choose a region where the required services below are supported. Most AWS commercial regions are supported, but
-  consult the
-  [AWS Services by Region](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/) page for
-  details.
-  - Amazon CloudFront
-  - Amazon S3
-  - Amazon Cognito
-  - AWS CloudFormation
-  - AWS Lambda
+- Select one of the supported AWS regions:
+  - US East (N. Virginia)
+  - US East (Ohio)
+  - US West (N. California)
+  - US West (Oregon)
+  - Canada (Central)
+  - Europe (Frankfurt)
+  - Europe (Stockholm)
+  - Europe (Ireland)
+  - Europe (London)
+  - Europe (Paris)
+  - Asia Pacific (Tokyo)
+  - Asia Pacific (Seoul)
+  - Asia Pacific (Osaka)
+  - Asia Pacific (Mumbai)
+  - Asia Pacific (Singapore)
+  - Asia Pacific (Sydney)
+  - South America (São Paulo)
 
 ## Deployment
 
