@@ -1,6 +1,6 @@
 # Public File Browser for Amazon S3
 
-AWS Storage Blog: [Creating a simple public file repository on Amazon S3](https://aws.amazon.com/blogs/storage/)
+AWS Storage Blog: [Creating a simple public file repository on Amazon S3](https://aws.amazon.com/blogs/storage/creating-a-simple-public-file-repository-on-amazon-s3/)
 
 This AWS Samples code allows customers to create a simple PUBLIC file repository using Amazon S3 and Amazon CloudFront.
 This sample code deploys a website and a public files S3 bucket which can be loaded with any files they wish to publish
